@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}e-Vote{% endblock %} - Electronic Voting Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">e-Vote</a>
+            <ul class="navbar-nav me-auto">
+                {% if current_user %}
+                    {% if current_user.role == 'voter' %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('ballot.ballot_list') }}">Vote</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('roll.enrolment') }}">My enrolment</a></li>
+                    {% elif current_user.role == 'aec_staff' %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('roll.staff_electors') }}">Electoral roll</a></li>
+                    {% elif current_user.role == 'delegate' %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('candidates.manage') }}">Candidates</a></li>
+                    {% elif current_user.role == 'auditor' %}
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('results.auditor_count') }}">Count</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('audit.audit_log') }}">Audit log</a></li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+            {% if current_user %}
+                <span class="navbar-text me-3">{{ current_user.username }} ({{ current_user.role }})</span>
+                <form method="post" action="{{ url_for('auth.logout') }}">
+                    <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
+                </form>
+            {% else %}
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('auth.login') }}">Log in</a>
+                <a class="btn btn-light btn-sm" href="{{ url_for('auth.register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer text-center text-muted">
+        INTE2667 Secure Software Systems - prototype, not for real elections
+    </footer>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Electronic Voting Platform</h1>
+<p class="lead">Australian federal election, House of Representatives.</p>
+{% if not current_user %}
+    <p><a href="{{ url_for('auth.login') }}">Log in</a> to vote, or
+       <a href="{{ url_for('auth.register') }}">register</a> using your enrolment number.</p>
+{% endif %}
+{% endblock %}
