@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Electoral roll{% endblock %}
+{% block content %}
+<h2>Register a citizen</h2>
+<form method="post" class="row g-2 mb-4">
+    <div class="col-md-3"><input class="form-control" name="given_name" placeholder="Given name" required></div>
+    <div class="col-md-3"><input class="form-control" name="family_name" placeholder="Family name" required></div>
+    <div class="col-md-2"><input class="form-control" name="dob" type="date" required></div>
+    <div class="col-md-4"><input class="form-control" name="address" placeholder="Address" required></div>
+    <div class="col-md-3">
+        <select class="form-select" name="division_id">
+            {% for d in divisions %}<option value="{{ d.id }}">{{ d.name }} ({{ d.state }})</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2"><button type="submit" class="btn btn-primary">Register</button></div>
+</form>
+
+<h2>Electoral roll</h2>
+<table class="table table-sm">
+    <tr><th>Enrolment no</th><th>Name</th><th>Division</th><th>Online account</th></tr>
+    {% for e in electors %}
+    <tr><td>{{ e.enrolment_no }}</td><td>{{ e.given_name }} {{ e.family_name }}</td>
+        <td>{{ e.division }}</td><td>{{ "yes" if e.has_account else "no" }}</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}
