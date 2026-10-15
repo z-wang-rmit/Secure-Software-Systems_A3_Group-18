@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}My enrolment{% endblock %}
+{% block content %}
+<h2>My enrolment</h2>
+{% if elector %}
+    <table class="table w-auto">
+        <tr><th>Status</th><td>{{ "Enrolled" if elector.enrolled else "Not enrolled" }}</td></tr>
+        <tr><th>Enrolment number</th><td>{{ elector.enrolment_no }}</td></tr>
+        <tr><th>Name</th><td>{{ elector.given_name }} {{ elector.family_name }}</td></tr>
+        <tr><th>Division</th><td>{{ elector.division }} ({{ elector.state }})</td></tr>
+    </table>
+    <h4>Update address</h4>
+    <form method="post" class="form-card">
+        <div class="mb-3">
+            <input class="form-control" name="address" value="{{ elector.address }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+{% else %}
+    <p>No enrolment is linked to this account.</p>
+{% endif %}
+{% endblock %}

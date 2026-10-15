@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Results{% endblock %}
+{% block content %}
+<h2>Results: {{ election.name }}</h2>
+{% for r in results %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h4 class="card-title">{{ r.division.name }}</h4>
+            <p>Elected: <strong>{{ r.payload.elected or "-" }}</strong> ({{ r.payload.ballots_total }} ballots)</p>
+            <table class="table table-sm w-auto">
+                <tr><th>Candidate</th><th>First preferences</th></tr>
+                {% for name, votes in r.payload.first_preferences.items() %}
+                    <tr><td>{{ name }}</td><td>{{ votes }}</td></tr>
+                {% endfor %}
+            </table>
+            <p class="small text-muted">Signature: <code class="receipt">{{ r.signature }}</code></p>
+        </div>
+    </div>
+{% else %}
+    <p>No results yet.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,25 @@
+# Secrets and keys: never commit these
+.env
+keys/
+certs/
+*.pem
+*.key
+*.crt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local databases
+*.db
+instance/
+
+# Editors / OS
+.idea/
+.vscode/
+.zed/
+.DS_Store

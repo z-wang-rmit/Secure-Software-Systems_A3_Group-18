@@ -1,0 +1,55 @@
+# Three containers: nginx (HTTPS) -> web (Flask app) -> db (MySQL).
+# Works with `docker compose up --build` and `podman compose up --build`.
+# Passwords come from .env (created by scripts/setup_dev.py).
+
+services:
+  db:
+    # Based on the Week 7 MySqlDatabaseDocker sample
+    image: docker.io/library/mysql:8.4
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: evote
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      retries: 30
+    networks: [backend]          # not published: only the app can reach the database
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db/evote
+    volumes:
+      - ./keys:/app/keys:ro,z
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend]          # not published: only nginx can reach the app
+
+  nginx:
+    image: docker.io/library/nginx:1.28-alpine
+    restart: unless-stopped
+    ports:
+      - "8443:443"               # https://localhost:8443
+      - "8080:80"                # http://localhost:8080 redirects to HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro,z
+      - ./certs:/etc/nginx/certs:ro,z
+    depends_on: [web]
+    networks: [frontend, backend]
+
+networks:
+  frontend: {}
+  backend:
+    internal: true               # no access from outside Docker
+
+volumes:
+  db-data: {}

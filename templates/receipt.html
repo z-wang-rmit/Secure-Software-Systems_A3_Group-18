@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Vote recorded{% endblock %}
+{% block content %}
+<div class="alert alert-success">Your vote has been recorded.</div>
+<p>{{ election.name }}</p>
+<p>Your receipt code (keep it; it does not reveal how you voted):</p>
+<p class="receipt">{{ receipt }}</p>
+{% endblock %}

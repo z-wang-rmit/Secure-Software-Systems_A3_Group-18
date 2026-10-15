@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Count{% endblock %}
+{% block content %}
+<h2>Elections</h2>
+<table class="table">
+    <tr><th>Election</th><th>Status</th><th></th></tr>
+    {% for e in elections %}
+    <tr>
+        <td>{{ e.name }}</td><td>{{ e.status }}</td>
+        <td>
+            {% if e.status == 'open' %}
+                <form method="post" action="{{ url_for('results.close', election_id=e.id) }}">
+                    <button type="submit" class="btn btn-warning btn-sm">Close voting</button></form>
+            {% elif e.status == 'closed' %}
+                <form method="post" action="{{ url_for('results.count', election_id=e.id) }}">
+                    <button type="submit" class="btn btn-primary btn-sm">Run count</button></form>
+            {% elif e.status == 'counted' %}
+                <a href="{{ url_for('results.view', election_id=e.id) }}">View results</a>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

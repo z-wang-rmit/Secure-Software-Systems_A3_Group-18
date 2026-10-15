@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Vote{% endblock %}
+{% block content %}
+<h2>Open elections</h2>
+<div class="list-group form-card">
+    {% for e in elections %}
+        <a class="list-group-item list-group-item-action" href="{{ url_for('ballot.ballot', election_id=e.id) }}">{{ e.name }}</a>
+    {% else %}
+        <p>No elections are open.</p>
+    {% endfor %}
+</div>
+{% endblock %}

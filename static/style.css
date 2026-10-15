@@ -1,0 +1,7 @@
+/* Small additions to Bootstrap. Kept in a file (not inline) so a strict CSP is possible (R15). */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1; }
+.footer { background-color: #f8f9fa; padding: 20px 0; margin-top: auto; }
+.form-card { max-width: 32rem; }
+.pref-cell { width: 6rem; }
+.receipt { font-family: monospace; word-break: break-all; }
