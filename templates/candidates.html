@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Candidates{% endblock %}
+{% block content %}
+<h2>Add a candidate</h2>
+<form method="post" class="row g-2 mb-4">
+    <div class="col-md-4">
+        <select class="form-select" name="election_id">
+            {% for e in elections %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="division_id">
+            {% for d in divisions %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2"><input class="form-control" name="name" placeholder="Name" required></div>
+    <div class="col-md-2"><input class="form-control" name="party" placeholder="Party"></div>
+    <div class="col-md-1"><input class="form-control" name="ballot_order" type="number" min="1" placeholder="#" required></div>
+    <div class="col-md-1"><button type="submit" class="btn btn-primary">Add</button></div>
+</form>
+
+<h2>Candidates</h2>
+<table class="table table-sm">
+    <tr><th>Division</th><th>Order</th><th>Name</th><th>Party</th><th>Excluded</th></tr>
+    {% for c in candidates %}
+    <tr><td>{{ c.division.name }}</td><td>{{ c.ballot_order }}</td><td>{{ c.name }}</td>
+        <td>{{ c.party }}</td><td>{{ "yes" if c.excluded else "" }}</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}
