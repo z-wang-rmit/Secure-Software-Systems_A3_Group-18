@@ -60,6 +60,8 @@ def create_app(test_config=None):
     # Web security settings: CSRF, cookies, headers (R15-R16)
     from app.utils.security import init_security
     init_security(app)
+    from app.utils.auth import init_access_control
+    init_access_control(app)   # R05: deny by default
 
     # Make the logged-in user available in every template (for the menu)
     from app.utils.auth import current_user

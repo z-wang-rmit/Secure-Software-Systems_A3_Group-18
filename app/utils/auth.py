@@ -60,3 +60,44 @@ def role_required(*roles):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+# R05: deny-by-default access control (idea from the Week 5 rbac.py sample)
+# Pages anyone can open, even without logging in
+PUBLIC_ENDPOINTS = {
+    'static', 'main.index', 'main.health_check',
+    'auth.login', 'auth.register', 'auth.api_login',
+    'results.view', 'results.api_results', 'results.api_verify',
+}
+
+# Every role and the pages it may open. A page that is not listed here is blocked.
+ROLE_PERMISSIONS = {
+    'voter': {
+        'auth.logout',
+        'roll.enrolment', 'roll.api_get_enrolment', 'roll.api_update_enrolment',
+        'ballot.ballot_list', 'ballot.ballot', 'ballot.api_candidates', 'ballot.api_cast_ballot',
+    },
+    'aec_staff': {'auth.logout', 'roll.staff_electors', 'roll.api_register_elector'},
+    'delegate': {'auth.logout', 'candidates.manage', 'candidates.api_add_candidate'},
+    'auditor': {'auth.logout', 'audit.audit_log', 'results.auditor_count',
+                'results.close', 'results.count'},
+}
+
+
+def check_access():
+    """Runs before every request. Blocks anything not explicitly allowed."""
+    endpoint = request.endpoint
+    if endpoint is None or endpoint in PUBLIC_ENDPOINTS:
+        return None  # unknown URL (Flask gives 404) or a public page
+    user = current_user()
+    if user is None:
+        if request.path.startswith('/api/'):
+            abort(401)
+        return redirect(url_for('auth.login'))
+    if endpoint not in ROLE_PERMISSIONS.get(user.role, set()):
+        abort(403)
+    return None
+
+
+def init_access_control(app):
+    app.before_request(check_access)
