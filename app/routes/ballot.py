@@ -5,7 +5,8 @@ from datetime import date
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Elector, Election, Candidate, Participation, Ballot
-from app.utils.auth import current_user, role_required
+from app.utils.auth import current_user,role_required 
+from app.utils.helpers import validate_preferences
 from app.utils.audit import log_event
 from app.utils.ballot_crypto import seal_ballot
 
@@ -44,6 +45,9 @@ def cast_ballot(election, prefs):
         candidate_ids.add(str(candidate.id))
     if set(prefs.keys()) != candidate_ids:
         return None, 'Please number every candidate.'
+    is_valid, error = validate_preferences(prefs)   # R08: numbers 1..N, no repeats
+    if not is_valid:
+        return None, error
 
     # Seal the ballot and make the receipt (R18's integrity check relies on this hash)
     sealed = seal_ballot(prefs)

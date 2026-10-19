@@ -4,7 +4,7 @@ from app import db
 from app.models import Elector, Division
 from app.utils.auth import current_user, role_required
 from app.utils.audit import log_event
-from app.utils.helpers import generate_enrolment_number, validate_required_fields
+from app.utils.helpers import generate_enrolment_number, validate_address, validate_elector
 from app.utils.roll_crypto import encrypt_field
 
 roll_bp = Blueprint('roll', __name__)
@@ -18,7 +18,7 @@ def my_elector():
 
 
 def register_elector(data):
-    """Add a citizen to the roll. PLACEHOLDER (R08): only checks fields are present."""
+    """Add a citizen to the roll. Callers must run validate_elector(data) first (R08)."""
     elector = Elector(
         enrolment_no=generate_enrolment_number(),
         given_name=encrypt_field(str(data['given_name'])),
@@ -39,8 +39,13 @@ def enrolment():
     """A voter checks their enrolment and updates their address."""
     elector = my_elector()
     if request.method == 'POST' and elector:
-        # Update the address (stored encrypted)
-        elector.address = encrypt_field(request.form.get('address', ''))
+        # R08: validate on the server before saving (stored encrypted, R06)
+        address = request.form.get('address', '')
+        is_valid, error_message = validate_address(address)
+        if not is_valid:
+            flash(error_message, 'danger')
+            return redirect(url_for('roll.enrolment'))
+        elector.address = encrypt_field(address.strip())
         db.session.commit()
         log_event(current_user().id, 'address_updated', f'elector:{elector.id}')
         flash('Address updated.', 'success')
@@ -53,7 +58,7 @@ def enrolment():
 def staff_electors():
     """AEC staff register citizens to vote."""
     if request.method == 'POST':
-        is_valid, error_message = validate_required_fields(request.form, ELECTOR_FIELDS)
+        is_valid, error_message = validate_elector(request.form)
         if not is_valid:
             flash(error_message, 'danger')
         else:
@@ -93,11 +98,11 @@ def api_update_enrolment():
 
         # Validate required fields
         data = request.get_json(silent=True) or {}
-        is_valid, error_message = validate_required_fields(data, ['address'])
+        is_valid, error_message = validate_address(data.get('address'))
         if not is_valid:
             return jsonify({'error': error_message}), 400
 
-        elector.address = encrypt_field(str(data['address']))
+        elector.address = encrypt_field(data['address'].strip())
         db.session.commit()
         log_event(current_user().id, 'address_updated', f'elector:{elector.id}', {'via': 'api'})
         return jsonify({'message': 'Address updated'}), 200
@@ -115,7 +120,7 @@ def api_register_elector():
     try:
         # Validate required fields
         data = request.get_json(silent=True) or {}
-        is_valid, error_message = validate_required_fields(data, ELECTOR_FIELDS)
+        is_valid, error_message = validate_elector(data)
         if not is_valid:
             return jsonify({'error': error_message}), 400
 
