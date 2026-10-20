@@ -1,6 +1,7 @@
 # Web security settings applied to every request
 # PLACEHOLDER (R15-R16): does nothing yet. Security headers (R15), CSRF and cookies (R16) go here.
-# After editing the placeholder, i have added CSRF protection.
+# After editing the placeholder, i have added CSRF protection for R16
+# i then edit it for R15, adding the security headers and no caching of private pages in add_security_headers
 
 from flask import request, session
 from flask_wtf.csrf import CSRFProtect
@@ -32,3 +33,13 @@ def init_security(app):
             return
         if request.method in ('POST', 'PUT', 'PATCH', 'DELETE'):
             csrf.protect()
+
+    @app.after_request
+    def add_security_headers(response): 
+        response.headers['X-Content-Type-Options'] = 'nosniff'   # browser must trust our Content-Type
+        response.headers['X-Frame-Options'] = 'DENY'             # page can't be shown in an iframe (clickjacking)
+
+        logged_in = session.get('user_id') is not None or request.headers.get('Authorization') #checks if users are logged in
+        if logged_in and not request.path.startswith('/static/'): # makes sure we're in a page and user is logged in)
+            response.headers['Cache-Control'] = 'no-store' #sets cache-control to no-store
+        return response
