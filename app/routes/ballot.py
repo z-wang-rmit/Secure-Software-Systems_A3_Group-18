@@ -14,6 +14,16 @@ from app.utils.ballot_crypto import seal_ballot
 ballot_bp = Blueprint('ballot', __name__)
 
 
+def receipts_for(election_id):
+    """Helper to fetch and sort receipt hashes for an election"""
+    election = db.get_or_404(Election, election_id)
+    ballots = Ballot.query.filter_by(election_id=election.id).order_by(Ballot.receipt).all()
+    receipts = []
+    for b in ballots:
+        receipts.append(b.receipt)
+    return election, receipts
+
+
 def candidates_for(election_id, division_id):
     """The candidates on the ballot for one division, in ballot order"""
     query = Candidate.query.filter_by(election_id=election_id, division_id=division_id, excluded=False)
@@ -108,12 +118,15 @@ def ballot(election_id):
 @ballot_bp.route('/bulletin/<int:election_id>')
 def bulletin(election_id):
     """The public list of receipts for one election"""
-    election = db.get_or_404(Election, election_id)
-    ballots = Ballot.query.filter_by(election_id=election.id).order_by(Ballot.receipt).all()
-    receipts = []
-    for b in ballots:
-        receipts.append(b.receipt)
+    election, receipts = receipts_for(election_id)
     return render_template('bulletin.html', election=election, receipts=receipts)
+
+
+@ballot_bp.route('/api/v1/bulletin/<int:election_id>', methods=['GET'])
+def api_bulletin(election_id):
+    """Public REST API endpoint returning election name and receipt list"""
+    election, receipts = receipts_for(election_id)
+    return jsonify({'election': election.name, 'receipts': receipts}), 200
 
 
 # ---- REST API ----
