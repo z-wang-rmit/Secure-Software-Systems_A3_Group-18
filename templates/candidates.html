@@ -3,6 +3,7 @@
 {% block content %}
 <h2>Add a candidate</h2>
 <form method="post" class="row g-2 mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-4">
         <select class="form-select" name="election_id">
             {% for e in elections %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}
