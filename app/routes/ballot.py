@@ -123,7 +123,7 @@ def api_candidates(election_id):
         return jsonify(result), 200
 
     except Exception as e:
-        print(f'Failed to get candidates: {e}')
+        print(f'Failed to get candidates: {type(e).__name__}')
         return jsonify({'error': 'Failed to get candidates'}), 500
 
 
@@ -151,5 +151,5 @@ def api_cast_ballot():
 
     except Exception as e:
         db.session.rollback()
-        print(f'Voting failed: {e}')
+        print(f'Voting failed: {type(e).__name__}')
         return jsonify({'error': 'Voting failed'}), 500
