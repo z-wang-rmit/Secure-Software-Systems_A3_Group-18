@@ -67,7 +67,7 @@ def role_required(*roles):
 PUBLIC_ENDPOINTS = {
     'static', 'main.index', 'main.health_check',
     'auth.login', 'auth.register', 'auth.api_login',
-    'results.view', 'results.api_results', 'results.api_verify',
+    'results.view', 'results.api_results', 'results.api_verify', 'ballot.bulletin',
 }
 
 # Every role and the pages it may open. A page that is not listed here is blocked.
@@ -101,3 +101,5 @@ def check_access():
 
 def init_access_control(app):
     app.before_request(check_access)
+
+    

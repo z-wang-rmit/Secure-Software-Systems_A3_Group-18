@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Receipt bulletin{% endblock %}
+{% block content %}
+  <p>{{ election.name }}</p>
+  <p>Public list of receipt codes for this election. Find your receipt code below to check that your vote was included:</p>
+  {% for receipt in receipts %}
+    <p class="receipt">{{ receipt }}</p>
+  {% endfor %}
+{% endblock %}

@@ -105,6 +105,17 @@ def ballot(election_id):
                            division=elector.division)
 
 
+@ballot_bp.route('/bulletin/<int:election_id>')
+def bulletin(election_id):
+    """The public list of receipts for one election"""
+    election = db.get_or_404(Election, election_id)
+    ballots = Ballot.query.filter_by(election_id=election.id).order_by(Ballot.receipt).all()
+    receipts = []
+    for b in ballots:
+        receipts.append(b.receipt)
+    return render_template('bulletin.html', election=election, receipts=receipts)
+
+
 # ---- REST API ----
 
 @ballot_bp.route('/api/v1/elections/<int:election_id>/candidates', methods=['GET'])
