@@ -4,6 +4,7 @@ import uuid
 from datetime import date
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app import db
+from sqlalchemy.exc import IntegrityError
 from app.models import Elector, Election, Candidate, Participation, Ballot
 from app.utils.auth import current_user,role_required 
 from app.utils.helpers import validate_preferences
@@ -34,7 +35,7 @@ def check_eligible(election):
 
 def cast_ballot(election, prefs):
     """Store the vote. Returns (receipt, None), or (None, error message)"""
-    # PLACEHOLDER (R09): two requests at the same moment could both pass check_eligible()
+    # R09: even if two requests pass check_eligible together, the DB primary key stops a second vote
     elector, error = check_eligible(election)
     if elector is None:
         return None, error
@@ -58,7 +59,11 @@ def cast_ballot(election, prefs):
                                  voted_on=date.today()))
     db.session.add(Ballot(id=str(uuid.uuid4()), election_id=election.id,
                           division_id=elector.division_id, sealed=sealed, receipt=receipt))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return None, 'You have already voted in this election.'
 
     # No voter id in the audit entry: it must not link a voter to a ballot (R10)
     log_event(None, 'ballot_cast', f'election:{election.id}')

@@ -1,3 +1,8 @@
+from datetime import date
+import pytest
+from sqlalchemy.exc import IntegrityError
+from app import db
+from app.models import Participation
 from tests.helpers import make_client, get_token, auth_header
 
 
@@ -34,3 +39,25 @@ def test_incomplete_ballot_rejected():
     client = make_client()
     token = get_token(client, 'voter2')
     assert cast(client, token, {'1': 1}).status_code == 400
+
+
+def test_voter_cannot_vote_for_another_divisions_candidates():
+    client = make_client()
+    # get Melbourne candidates using voter1
+    token1 = get_token(client, 'voter1')
+    melb_prefs = number_every_candidate(client, token1)
+
+    # voter4 is in Sydney, so Melbourne candidate IDs should be rejected
+    token4 = get_token(client, 'voter4')
+    resp = cast(client, token4, melb_prefs)
+    assert resp.status_code == 400
+
+
+def test_database_refuses_a_second_participation_row():
+    client = make_client()
+    with client.application.app_context():
+        db.session.add(Participation(election_id=1, elector_id=1, voted_on=date.today()))
+        db.session.commit()
+        db.session.add(Participation(election_id=1, elector_id=1, voted_on=date.today()))
+        with pytest.raises(IntegrityError):
+            db.session.commit()
