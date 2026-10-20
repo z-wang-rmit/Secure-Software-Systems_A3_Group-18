@@ -4,6 +4,7 @@
 <h2>{{ election.name }}</h2>
 <p>Division of {{ division.name }}. Number <strong>every</strong> box from 1 to {{ candidates|length }} in the order of your choice.</p>
 <form method="post" class="form-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <table class="table">
         {% for c in candidates %}
         <tr>

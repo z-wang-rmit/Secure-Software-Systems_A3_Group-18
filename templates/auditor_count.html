@@ -10,9 +10,11 @@
         <td>
             {% if e.status == 'open' %}
                 <form method="post" action="{{ url_for('results.close', election_id=e.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-warning btn-sm">Close voting</button></form>
             {% elif e.status == 'closed' %}
                 <form method="post" action="{{ url_for('results.count', election_id=e.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-primary btn-sm">Run count</button></form>
             {% elif e.status == 'counted' %}
                 <a href="{{ url_for('results.view', election_id=e.id) }}">View results</a>

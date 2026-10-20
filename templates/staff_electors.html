@@ -3,6 +3,7 @@
 {% block content %}
 <h2>Register a citizen</h2>
 <form method="post" class="row g-2 mb-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-md-3"><input class="form-control" name="given_name" placeholder="Given name" required></div>
     <div class="col-md-3"><input class="form-control" name="family_name" placeholder="Family name" required></div>
     <div class="col-md-2"><input class="form-control" name="dob" type="date" required></div>

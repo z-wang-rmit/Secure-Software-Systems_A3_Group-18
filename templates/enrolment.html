@@ -11,6 +11,7 @@
     </table>
     <h4>Update address</h4>
     <form method="post" class="form-card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3">
             <input class="form-control" name="address" value="{{ elector.address }}" required>
         </div>

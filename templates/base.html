@@ -30,6 +30,7 @@
             {% if current_user %}
                 <span class="navbar-text me-3">{{ current_user.username }} ({{ current_user.role }})</span>
                 <form method="post" action="{{ url_for('auth.logout') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-light btn-sm">Log out</button>
                 </form>
             {% else %}

@@ -4,7 +4,7 @@ from app import create_app
 PASSWORD = 'test-password-123'
 
 
-def make_client():
+def make_client(csrf=False):
     """A fake browser talking to a brand-new app with a fresh in-memory database.
 
     The demo data is loaded: staff1, delegate1, delegate2, auditor1, and voter1-voter5
@@ -17,6 +17,7 @@ def make_client():
         'SQLALCHEMY_DATABASE_URI': 'sqlite://',
         'SEED_PASSWORD': PASSWORD,
         'BCRYPT_ROUNDS': 4,   # fast password hashing, for tests only
+        'WTF_CSRF_ENABLED': csrf, #this is for R16, so that its off for normal tests, but on for CSRF tests
     })
     return app.test_client()
 
