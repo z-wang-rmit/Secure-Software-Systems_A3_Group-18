@@ -17,6 +17,7 @@ def make_client():
         'SQLALCHEMY_DATABASE_URI': 'sqlite://',
         'SEED_PASSWORD': PASSWORD,
         'BCRYPT_ROUNDS': 4,   # fast password hashing, for tests only
+        'WTF_CSRF_ENABLED': False #this is for R16, so that its off for normal tests, but on for CSRF tests
     })
     return app.test_client()
 
