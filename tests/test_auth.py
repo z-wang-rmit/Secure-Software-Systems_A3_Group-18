@@ -1,5 +1,5 @@
 from tests.helpers import (
-    make_client, login, get_token, PASSWORD, current_code,
+    make_client, login, PASSWORD, current_code,
 )
 
 

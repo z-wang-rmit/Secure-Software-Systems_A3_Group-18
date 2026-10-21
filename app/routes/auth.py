@@ -246,7 +246,7 @@ def api_login():
             'access_token': access_token
         }), 200
 
-    except Exception as e:
+    except Exception:
         # Keep internal exception details out of the API response.
         current_app.logger.exception('API login failed')
         return jsonify({'error': 'Login failed'}), 500
