@@ -1,25 +1,62 @@
 # Login, logout and account registration. Owner: WS-A (R01-R04)
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from flask_jwt_extended import create_access_token
-from app import db
+from datetime import timedelta
+from app import db, limiter
 from app.models import User, Elector
 from app.utils.auth import login_user, logout_user
 from app.utils.audit import log_event
-from app.utils.helpers import validate_required_fields
+from app.utils.helpers import validate_required_fields, utcnow
 
 auth_bp = Blueprint('auth', __name__)
 
 
 def check_credentials(username, password):
-    """Return the user if username and password are correct, else None"""
-    # PLACEHOLDER (R01-R04): no MFA, no lockout, no rate limiting
+    """Return the user if credentials are valid and the account is not locked."""
     user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
+
+    # Use the same failure result for unknown and locked accounts.
+    if user is None:
+        return None
+
+    now = utcnow()
+
+    # Reject login attempts while the account is locked.
+    if user.locked_until is not None:
+        if now < user.locked_until:
+            return None
+
+        # The lockout has expired; reset the counter.
+        user.locked_until = None
+        user.failed_logins = 0
+
+    # Correct credentials: reset failed attempts.
+    if user.check_password(password):
+        user.failed_logins = 0
+        user.locked_until = None
+        db.session.commit()
         return user
+
+    # Incorrect password: record a failed attempt.
+    user.failed_logins = (user.failed_logins or 0) + 1
+
+    # Lock the account after five consecutive failures.
+    if user.failed_logins >= 5:
+        user.locked_until = now + timedelta(minutes=15)
+        log_event(
+            user.id,
+            'account_locked',
+            f'user:{user.id}',
+            {'duration_minutes': 15},
+        )
+    else:
+        db.session.commit()
+
     return None
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if request.method == 'POST':
         # Check the username and password
@@ -72,6 +109,7 @@ def register():
 # ---- REST API ----
 
 @auth_bp.route('/api/v1/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def api_login():
     """Check username and password and return a JWT token (as in the Week 8 sample)"""
     try:
