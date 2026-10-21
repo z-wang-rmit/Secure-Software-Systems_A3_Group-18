@@ -5,6 +5,7 @@ from .election import Division, Election, Candidate
 from .ballot import Participation, Ballot
 from .audit_log import AuditLog
 from .result import Result
+from .mfa_enrollment import MFAEnrollment
 
 __all__ = ['User', 'Elector', 'Division', 'Election', 'Candidate',
-           'Participation', 'Ballot', 'AuditLog', 'Result']
+           'Participation', 'Ballot', 'AuditLog', 'Result', 'MFAEnrollment']
