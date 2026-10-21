@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Set up MFA{% endblock %}
+{% block content %}
+<div class="card form-card">
+    <div class="card-body">
+        <h2 class="card-title">Set up multi-factor authentication</h2>
+        <p>Scan this QR code using your authenticator app, then enter the six-digit code to verify setup.</p>
+
+        <img src="{{ qr_data_uri }}"
+             alt="Authenticator setup QR code"
+             class="img-fluid mb-3"
+             style="max-width: 260px;">
+
+        <form method="post" action="{{ url_for('auth.mfa_setup') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label" for="code">Six-digit authenticator code</label>
+            <input class="form-control mb-3"
+                   id="code"
+                   name="code"
+                   inputmode="numeric"
+                   pattern="[0-9]{6}"
+                   minlength="6"
+                   maxlength="6"
+                   autocomplete="one-time-code"
+                   required>
+            <button type="submit" class="btn btn-primary">Verify and enable MFA</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

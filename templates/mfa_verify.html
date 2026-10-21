@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Verify MFA{% endblock %}
+
+{% block content %}
+<div class="card form-card">
+    <div class="card-body">
+        <h2 class="card-title">Verify your identity</h2>
+        <p>Enter the six-digit code from your authenticator app to complete login.</p>
+
+        <form method="post" action="{{ url_for('auth.mfa_verify') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <label class="form-label" for="code">Authenticator code</label>
+            <input
+                class="form-control mb-3"
+                id="code"
+                name="code"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                minlength="6"
+                maxlength="6"
+                autocomplete="one-time-code"
+                required
+            >
+
+            <button type="submit" class="btn btn-primary">
+                Verify and log in
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
