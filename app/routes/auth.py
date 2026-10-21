@@ -74,7 +74,7 @@ def mfa_setup():
             log_event(user.id, 'mfa_setup_success', f'user:{user.id}')
             flash('MFA is enabled. Please log in again.', 'success')
             return redirect(url_for('auth.login'))
-        uri = pyotp.TOTP(enrollment.pending_secret).provisioning_uri(
+    uri = pyotp.TOTP(enrollment.pending_secret).provisioning_uri(
         name=user.username,
         issuer_name='Secure Voting',
     )
