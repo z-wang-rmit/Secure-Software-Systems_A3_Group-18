@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Ballot, Candidate, Division, Election, Result
-from app.utils.auth import current_user, role_required
+from app.utils.auth import current_user, role_required, recent_login_required
 from app.utils.audit import log_event
 from app.utils.ballot_crypto import open_ballot
 from app.utils.helpers import utcnow
@@ -54,6 +54,7 @@ def auditor_count():
 
 @results_bp.route('/auditor/elections/<int:election_id>/close', methods=['POST'])
 @role_required('auditor')
+@recent_login_required
 def close(election_id):
     election = db.get_or_404(Election, election_id)
     if election.status != 'open':
@@ -67,6 +68,7 @@ def close(election_id):
 
 @results_bp.route('/auditor/elections/<int:election_id>/count', methods=['POST'])
 @role_required('auditor')
+@recent_login_required
 def count(election_id):
     election = db.get_or_404(Election, election_id)
     if election.status != 'closed':
