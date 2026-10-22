@@ -1,4 +1,5 @@
 # Closing elections, counting votes and publishing results. Owner: WS-E (R18)
+import hashlib
 from flask import Blueprint, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Ballot, Candidate, Division, Election, Result
@@ -11,9 +12,18 @@ from app.utils.signing import sign_results, verify_results
 results_bp = Blueprint('results', __name__)
 
 
+def find_tampered_ballots(election):
+    """R18: ids of ballots whose sha256(sealed) no longer matches the receipt (W9 L s26)"""
+    bad = []
+    for ballot in Ballot.query.filter_by(election_id=election.id).all():
+        if hashlib.sha256(ballot.sealed).hexdigest() != ballot.receipt:
+            bad.append(ballot.id)
+    return bad
+
+
 def count_division(election, division):
     """Count one division and return the result payload"""
-    # PLACEHOLDER (R18): ballots aren't checked for tampering before counting.
+    # Ballots are checked with find_tampered_ballots() before this runs.
     # Counts first preferences only (a full preferential count is a stretch goal).
     # Start every candidate on 0 votes
     tally = {}
@@ -73,6 +83,13 @@ def count(election_id):
     election = db.get_or_404(Election, election_id)
     if election.status != 'closed':
         flash('Close the election before counting.', 'danger')
+        return redirect(url_for('results.auditor_count'))
+    # R18: refuse to count if any ballot was changed after it was cast
+    bad_ballots = find_tampered_ballots(election)
+    if bad_ballots:
+        log_event(current_user().id, 'count_refused', f'election:{election.id}',
+                  {'bad_ballots': bad_ballots})
+        flash(f'Count refused: {len(bad_ballots)} ballot(s) failed the integrity check.', 'danger')
         return redirect(url_for('results.auditor_count'))
     # Count each division, sign the result and store it
     for division in Division.query.all():
