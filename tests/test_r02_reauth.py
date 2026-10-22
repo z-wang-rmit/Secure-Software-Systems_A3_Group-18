@@ -151,7 +151,7 @@ def test_api_critical_action_requires_fresh_jwt():
     from tests.helpers import get_token, auth_header
 
     client = make_client()
-    token = get_token(client, 'staff1')
+    get_token(client, 'staff1')
 
     # A valid but non-fresh token must not authorize a critical action.
     from flask_jwt_extended import create_access_token
