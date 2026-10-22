@@ -102,3 +102,33 @@ def validate_preferences(prefs):
     if sorted(numbers) != list(range(1, len(numbers) + 1)):
         return False, 'Number the candidates 1 to N, using each number once.'
     return True, None
+
+# ---- R03: Password policy ----
+
+COMMON_PASSWORDS = {
+    'password123',
+    'password1234',
+    'password12345',
+    'qwerty123456',
+    'admin123456',
+}
+
+
+def validate_password(password):
+    """Validate password strength for new account registration."""
+    if not isinstance(password, str):
+        return False, 'Password must be at least 12 characters and contain letters and digits.'
+
+    if len(password) < 12:
+        return False, 'Password must be at least 12 characters and contain letters and digits.'
+
+    if not re.search(r'[A-Za-z]', password):
+        return False, 'Password must be at least 12 characters and contain letters and digits.'
+
+    if not re.search(r'\d', password):
+        return False, 'Password must be at least 12 characters and contain letters and digits.'
+
+    if password.lower() in COMMON_PASSWORDS:
+        return False, 'Please choose a less common password.'
+
+    return True, None

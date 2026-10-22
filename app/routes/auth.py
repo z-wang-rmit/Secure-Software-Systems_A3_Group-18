@@ -12,9 +12,8 @@ from app import db
 from app.models import User, Elector
 from app.utils.auth import login_user, logout_user
 from app.utils.audit import log_event
-from app.utils.helpers import validate_required_fields
+from app.utils.helpers import validate_required_fields, validate_password
 from urllib.parse import urlparse
-
 
 auth_bp = Blueprint('auth', __name__)
 def make_qr_data_uri(otpauth_uri):
@@ -223,6 +222,12 @@ def register():
         # Validate required fields
         is_valid, error_message = validate_required_fields(
             request.form, ['enrolment_no', 'username', 'password'])
+        password_valid, password_error = validate_password(
+            request.form.get('password', '')
+        )
+        if not password_valid:
+            flash(password_error, 'danger')
+            return render_template('register.html'), 400
         username = request.form.get('username', '').strip()
         elector = Elector.query.filter_by(enrolment_no=request.form.get('enrolment_no', '').strip()).first()
         if (not is_valid or elector is None or elector.user_id is not None
