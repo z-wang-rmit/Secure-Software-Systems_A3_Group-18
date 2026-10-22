@@ -7,6 +7,9 @@ services:
     # Based on the Week 7 MySqlDatabaseDocker sample
     image: docker.io/library/mysql:8.4
     restart: always
+    # R17: lets the app's (non-root) user create the audit_log triggers while
+    # MySQL's binary log is on. Without it MySQL gives error 1419.
+    command: --log-bin-trust-function-creators=1
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: evote

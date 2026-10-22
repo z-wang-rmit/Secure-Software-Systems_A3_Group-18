@@ -1,3 +1,7 @@
+import pytest
+from sqlalchemy import text
+from sqlalchemy.exc import DatabaseError
+from app import db
 from tests.helpers import make_client, login
 from app.models import AuditLog
 from app.utils.audit import log_event
@@ -45,3 +49,23 @@ def test_long_username_fits_in_the_log():
     with client.application.app_context():
         entry = AuditLog.query.filter_by(action='login_failed').one()
         assert len(entry.target) <= 128
+
+
+def test_database_refuses_to_edit_the_log():
+    # R17: a trigger stops anyone changing an entry, even with direct DB access (W7 L s17-18)
+    client = make_client()
+    login(client, 'voter1')
+    with client.application.app_context():
+        with pytest.raises(DatabaseError):
+            db.session.execute(text("UPDATE audit_log SET action = 'nothing_happened'"))
+        db.session.rollback()
+
+
+def test_database_refuses_to_delete_the_log():
+    client = make_client()
+    login(client, 'voter1')
+    with client.application.app_context():
+        with pytest.raises(DatabaseError):
+            db.session.execute(text('DELETE FROM audit_log'))
+        db.session.rollback()
+        assert AuditLog.query.count() > 0
