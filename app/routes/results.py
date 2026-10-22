@@ -1,19 +1,29 @@
 # Closing elections, counting votes and publishing results. Owner: WS-E (R18)
-from flask import Blueprint, jsonify, render_template, redirect, url_for, flash
+import hashlib
+from flask import Blueprint, Response, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Ballot, Candidate, Division, Election, Result
 from app.utils.auth import current_user, role_required, recent_login_required
 from app.utils.audit import log_event
 from app.utils.ballot_crypto import open_ballot
 from app.utils.helpers import utcnow
-from app.utils.signing import sign_results, verify_results
+from app.utils.signing import public_key_pem, sign_results, verify_results
 
 results_bp = Blueprint('results', __name__)
 
 
+def find_tampered_ballots(election):
+    """R18: ids of ballots whose sha256(sealed) no longer matches the receipt (W9 L s26)"""
+    bad = []
+    for ballot in Ballot.query.filter_by(election_id=election.id).all():
+        if hashlib.sha256(ballot.sealed).hexdigest() != ballot.receipt:
+            bad.append(ballot.id)
+    return bad
+
+
 def count_division(election, division):
     """Count one division and return the result payload"""
-    # PLACEHOLDER (R18): ballots aren't checked for tampering before counting.
+    # Ballots are checked with find_tampered_ballots() before this runs.
     # Counts first preferences only (a full preferential count is a stretch goal).
     # Start every candidate on 0 votes
     tally = {}
@@ -74,6 +84,13 @@ def count(election_id):
     if election.status != 'closed':
         flash('Close the election before counting.', 'danger')
         return redirect(url_for('results.auditor_count'))
+    # R18: refuse to count if any ballot was changed after it was cast
+    bad_ballots = find_tampered_ballots(election)
+    if bad_ballots:
+        log_event(current_user().id, 'count_refused', f'election:{election.id}',
+                  {'bad_ballots': bad_ballots})
+        flash(f'Count refused: {len(bad_ballots)} ballot(s) failed the integrity check.', 'danger')
+        return redirect(url_for('results.auditor_count'))
     # Count each division, sign the result and store it
     for division in Division.query.all():
         payload = count_division(election, division)
@@ -88,8 +105,12 @@ def count(election_id):
 @results_bp.route('/results/<int:election_id>')
 def view(election_id):
     election = db.get_or_404(Election, election_id)
-    return render_template('results.html', election=election,
-                           results=Result.query.filter_by(election_id=election.id).all())
+    results = Result.query.filter_by(election_id=election.id).all()
+    # R18: check each signature so viewers can see the results weren't changed
+    valid = {}
+    for result in results:
+        valid[result.id] = verify_results(result.payload, result.signature)
+    return render_template('results.html', election=election, results=results, valid=valid)
 
 
 # ---- REST API (public, so other systems can fetch and check the results) ----
@@ -125,3 +146,9 @@ def api_verify(election_id):
     except Exception as e:
         print(f'Verifying results failed: {e}')
         return jsonify({'error': 'Verifying results failed'}), 500
+
+
+@results_bp.route('/api/v1/results/public-key', methods=['GET'])
+def api_public_key():
+    """R18: the Ed25519 public key, so anyone can check result signatures themselves"""
+    return Response(public_key_pem(), mimetype='text/plain')

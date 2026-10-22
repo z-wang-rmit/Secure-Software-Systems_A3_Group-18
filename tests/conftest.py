@@ -25,3 +25,22 @@ with open(pub_path, 'wb') as f:
 
 os.environ.setdefault('ELECTION_PUBLIC_KEY', pub_path)
 os.environ.setdefault('ELECTION_PRIVATE_KEY', priv_path)
+
+# R18: a throwaway Ed25519 key pair for signing results in tests
+from cryptography.hazmat.primitives.asymmetric import ed25519  # noqa: E402
+
+signing_key = ed25519.Ed25519PrivateKey.generate()
+
+signing_path = os.path.join(key_dir, 'results_signing.pem')
+with open(signing_path, 'wb') as f:
+    f.write(signing_key.private_bytes(
+        serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption()))
+
+results_pub_path = os.path.join(key_dir, 'results_public.pem')
+with open(results_pub_path, 'wb') as f:
+    f.write(signing_key.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
+
+os.environ.setdefault('RESULTS_SIGNING_KEY', signing_path)
+os.environ.setdefault('RESULTS_PUBLIC_KEY', results_pub_path)
