@@ -141,7 +141,7 @@ PUBLIC_ENDPOINTS = {
     'static', 'main.index', 'main.health_check',
     'auth.login', 'auth.register', 'auth.api_login',
     'auth.mfa_setup',
-    'results.view', 'results.api_results', 'results.api_verify',
+    'results.view', 'results.api_results', 'results.api_verify', 'results.api_public_key',
     'ballot.bulletin', 'ballot.api_bulletin', 'auth.mfa_verify',
 }
 

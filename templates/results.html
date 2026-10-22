@@ -13,10 +13,16 @@
                     <tr><td>{{ name }}</td><td>{{ votes }}</td></tr>
                 {% endfor %}
             </table>
-            <p class="small text-muted">Signature: <code class="receipt">{{ r.signature }}</code></p>
+            {% if valid[r.id] %}
+                <p class="text-success mb-1">Signature valid</p>
+            {% else %}
+                <p class="text-danger mb-1">Signature INVALID: these results may have been changed</p>
+            {% endif %}
+            <p class="small text-muted">Signature (Ed25519): <code class="receipt">{{ r.signature }}</code></p>
         </div>
     </div>
 {% else %}
     <p>No results yet.</p>
 {% endfor %}
+<p class="small">Check the signatures yourself with the <a href="{{ url_for('results.api_public_key') }}">public key</a>.</p>
 {% endblock %}

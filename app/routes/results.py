@@ -1,13 +1,13 @@
 # Closing elections, counting votes and publishing results. Owner: WS-E (R18)
 import hashlib
-from flask import Blueprint, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, Response, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Ballot, Candidate, Division, Election, Result
 from app.utils.auth import current_user, role_required, recent_login_required
 from app.utils.audit import log_event
 from app.utils.ballot_crypto import open_ballot
 from app.utils.helpers import utcnow
-from app.utils.signing import sign_results, verify_results
+from app.utils.signing import public_key_pem, sign_results, verify_results
 
 results_bp = Blueprint('results', __name__)
 
@@ -105,8 +105,12 @@ def count(election_id):
 @results_bp.route('/results/<int:election_id>')
 def view(election_id):
     election = db.get_or_404(Election, election_id)
-    return render_template('results.html', election=election,
-                           results=Result.query.filter_by(election_id=election.id).all())
+    results = Result.query.filter_by(election_id=election.id).all()
+    # R18: check each signature so viewers can see the results weren't changed
+    valid = {}
+    for result in results:
+        valid[result.id] = verify_results(result.payload, result.signature)
+    return render_template('results.html', election=election, results=results, valid=valid)
 
 
 # ---- REST API (public, so other systems can fetch and check the results) ----
@@ -142,3 +146,9 @@ def api_verify(election_id):
     except Exception as e:
         print(f'Verifying results failed: {e}')
         return jsonify({'error': 'Verifying results failed'}), 500
+
+
+@results_bp.route('/api/v1/results/public-key', methods=['GET'])
+def api_public_key():
+    """R18: the Ed25519 public key, so anyone can check result signatures themselves"""
+    return Response(public_key_pem(), mimetype='text/plain')
