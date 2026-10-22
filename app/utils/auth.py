@@ -67,7 +67,9 @@ def role_required(*roles):
 PUBLIC_ENDPOINTS = {
     'static', 'main.index', 'main.health_check',
     'auth.login', 'auth.register', 'auth.api_login',
-    'results.view', 'results.api_results', 'results.api_verify', 'ballot.bulletin', 'ballot.api_bulletin',
+    'auth.mfa_setup',
+    'results.view', 'results.api_results', 'results.api_verify',
+    'ballot.bulletin', 'ballot.api_bulletin', 'auth.mfa_verify',
 }
 
 # Every role and the pages it may open. A page that is not listed here is blocked.
