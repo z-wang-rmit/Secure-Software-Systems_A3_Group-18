@@ -69,3 +69,22 @@ def test_database_refuses_to_delete_the_log():
             db.session.execute(text('DELETE FROM audit_log'))
         db.session.rollback()
         assert AuditLog.query.count() > 0
+
+
+def test_only_auditors_can_read_the_log():
+    # R17: the Secure Logger's "authorised reader" is the auditor role only
+    for username in ['staff1', 'delegate1']:
+        client = make_client()
+        login(client, username)
+        assert client.get('/auditor/audit').status_code == 403
+
+
+def test_refused_access_is_logged():
+    # R17: a 403 is a security event, so it goes in the log with who tried and what
+    client = make_client()
+    login(client, 'voter1')
+    client.get('/auditor/audit')
+    with client.application.app_context():
+        entry = AuditLog.query.filter_by(action='access_denied').one()
+        assert entry.target == 'page:/auditor/audit'
+        assert entry.actor_id is not None
