@@ -1,6 +1,9 @@
+import base64
+from cryptography.hazmat.primitives import serialization
 from tests.helpers import make_client, login, get_token
 from app import db
 from app.models import AuditLog, Ballot, Election, Result
+from app.utils.signing import canonical_bytes
 from tests.test_ballot import number_every_candidate, cast
 
 
@@ -80,3 +83,26 @@ def test_only_auditor_can_count():
     client.post('/logout')
     login(client, 'delegate1')
     assert client.post('/auditor/elections/1/count').status_code == 403
+
+
+def test_anyone_can_verify_with_the_published_key():
+    # R18: an outside system needs only the API and the public key
+    client = make_client()
+    vote_and_close(client)
+    client.post('/auditor/elections/1/count')
+    client.post('/logout')
+
+    response = client.get('/api/v1/results/public-key')
+    assert response.status_code == 200
+    assert response.mimetype == 'text/plain'
+    public_key = serialization.load_pem_public_key(response.data)
+
+    for result in client.get('/api/v1/results/1').get_json():
+        public_key.verify(base64.b64decode(result['signature']), canonical_bytes(result['payload']))
+
+
+def test_results_page_shows_signature_check():
+    client = make_client()
+    vote_and_close(client)
+    client.post('/auditor/elections/1/count')
+    assert b'Signature valid' in client.get('/results/1').data
