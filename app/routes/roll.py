@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Elector, Division
-from app.utils.auth import current_user, role_required
+from app.utils.auth import current_user, role_required, recent_login_required, recent_api_authentication_required
 from app.utils.audit import log_event
 from app.utils.helpers import generate_enrolment_number, validate_address, validate_elector
 from app.utils.roll_crypto import encrypt_field
@@ -55,6 +55,7 @@ def enrolment():
 
 @roll_bp.route('/staff/electors', methods=['GET', 'POST'])
 @role_required('aec_staff')
+@recent_login_required
 def staff_electors():
     """AEC staff register citizens to vote."""
     if request.method == 'POST':
@@ -117,6 +118,8 @@ def api_update_enrolment():
 @role_required('aec_staff')
 def api_register_elector():
     """AEC staff add a citizen to the roll"""
+    recent_api_authentication_required()
+
     try:
         # Validate required fields
         data = request.get_json(silent=True) or {}

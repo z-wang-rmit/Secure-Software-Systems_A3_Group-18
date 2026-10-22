@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app import db
 from app.models import Candidate, Division, Election
-from app.utils.auth import current_user, role_required
+from app.utils.auth import current_user, role_required, recent_login_required, recent_api_authentication_required
 from app.utils.audit import log_event
 from app.utils.helpers import validate_required_fields
 
@@ -24,6 +24,7 @@ def add_candidate(data):
 
 @candidates_bp.route('/delegate/candidates', methods=['GET', 'POST'])
 @role_required('delegate')
+@recent_login_required
 def manage():
     if request.method == 'POST':
         is_valid, error_message = validate_required_fields(request.form, CANDIDATE_FIELDS)
@@ -45,6 +46,7 @@ def manage():
 @role_required('delegate')
 def api_add_candidate():
     """A delegate adds a candidate"""
+    recent_api_authentication_required()
     try:
         # Validate required fields
         data = request.get_json(silent=True) or {}
