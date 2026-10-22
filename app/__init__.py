@@ -1,3 +1,5 @@
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
@@ -11,7 +13,10 @@ load_dotenv()
 # Initialize extensions
 db = SQLAlchemy()
 jwt = JWTManager()
-
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],
+)
 
 def create_app(test_config=None):
     # Templates and static files live in the project root (same layout as the Week 8 sample)
@@ -36,6 +41,7 @@ def create_app(test_config=None):
     # Initialize extensions with app
     db.init_app(app)
     jwt.init_app(app)
+    limiter.init_app(app)
 
     # Import models so SQLAlchemy knows about every table
     from app.models import user, elector, election, ballot, audit_log, result  # noqa: F401

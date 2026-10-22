@@ -1,19 +1,22 @@
-# Login, logout and account registration. Owner: WS-A (R01-R04)
 from datetime import timedelta
 import io
 import base64
 import pyotp
 import qrcode
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session, current_app
-from app.models import MFAEnrollment
-from app.utils.helpers import utcnow
-from flask_jwt_extended import create_access_token, get_jwt_identity, verify_jwt_in_request
-from app import db
-from app.models import User, Elector
+from urllib.parse import urlparse
+
+from flask import (
+    Blueprint, request, jsonify, render_template, redirect,
+    url_for, flash, session, current_app
+)
+from flask_jwt_extended import (
+    create_access_token, get_jwt_identity, verify_jwt_in_request
+)
+from app import db, limiter
+from app.models import User, Elector, MFAEnrollment
 from app.utils.auth import login_user, logout_user
 from app.utils.audit import log_event
-from app.utils.helpers import validate_required_fields, validate_password
-from urllib.parse import urlparse
+from app.utils.helpers import validate_required_fields, validate_password, utcnow
 
 auth_bp = Blueprint('auth', __name__)
 def make_qr_data_uri(otpauth_uri):
@@ -26,11 +29,46 @@ def make_qr_data_uri(otpauth_uri):
 
 
 def check_credentials(username, password):
-    """Return the user if username and password are correct, else None"""
-    # PLACEHOLDER (R01-R04): no MFA, no lockout, no rate limiting
+    """Return the user if credentials are valid and the account is not locked."""
     user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
+
+    # Use the same failure result for unknown and locked accounts.
+    if user is None:
+        return None
+
+    now = utcnow()
+
+    # Reject login attempts while the account is locked.
+    if user.locked_until is not None:
+        if now < user.locked_until:
+            return None
+
+        # The lockout has expired; reset the counter.
+        user.locked_until = None
+        user.failed_logins = 0
+
+    # Correct credentials: reset failed attempts.
+    if user.check_password(password):
+        user.failed_logins = 0
+        user.locked_until = None
+        db.session.commit()
         return user
+
+    # Incorrect password: record a failed attempt.
+    user.failed_logins = (user.failed_logins or 0) + 1
+
+    # Lock the account after five consecutive failures.
+    if user.failed_logins >= 5:
+        user.locked_until = now + timedelta(minutes=15)
+        log_event(
+            user.id,
+            'account_locked',
+            f'user:{user.id}',
+            {'duration_minutes': 15},
+        )
+    else:
+        db.session.commit()
+
     return None
 
 @auth_bp.route('/mfa/setup', methods=['GET', 'POST'])
@@ -135,6 +173,7 @@ def mfa_verify():
     return render_template('mfa_verify.html')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -251,6 +290,7 @@ def register():
 # ---- REST API ----
 
 @auth_bp.route('/api/v1/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def api_login():
     """Issue a JWT only after password and MFA verification."""
     try:
