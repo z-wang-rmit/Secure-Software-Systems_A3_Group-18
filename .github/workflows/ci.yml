@@ -28,3 +28,6 @@ jobs:
       - name: Static analysis (bandit, R20)
         # -ll = only fail on medium and high severity issues
         run: bandit -r app scripts -ll
+      - name: Dependency check (pip-audit, R20)
+        # Fails if any pinned package has a known vulnerability (PyPI advisory database)
+        run: pip-audit -r requirements.txt
