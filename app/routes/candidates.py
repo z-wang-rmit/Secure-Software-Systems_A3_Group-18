@@ -1,5 +1,5 @@
 # Candidate administration by state delegates. Owner: WS-E (R19)
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, abort
 from app import db
 from app.models import Candidate, CandidateProposal, Division, Election
 from app.utils.auth import current_user, role_required, recent_login_required, recent_api_authentication_required
@@ -39,6 +39,35 @@ def manage():
                            candidates=Candidate.query.order_by(Candidate.division_id,
                                                                Candidate.ballot_order).all(),
                            elections=Election.query.all(), divisions=Division.query.all())
+
+
+@candidates_bp.route('/delegate/candidates/proposals/<int:proposal_id>/approve', methods=['POST'])
+@role_required('delegate')
+@recent_login_required
+def approve(proposal_id):
+    """R19: a second, different delegate approves a proposal, which adds the candidate"""
+    proposal = db.get_or_404(CandidateProposal, proposal_id)
+    user = current_user()
+
+    # The person who proposed it can't also approve it
+    if proposal.proposed_by == user.id:
+        log_event(user.id, 'approval_refused', f'proposal:{proposal.id}', {'reason': 'own proposal'})
+        abort(403)
+
+    if proposal.status != 'pending':
+        flash('This proposal has already been approved.', 'warning')
+        return redirect(url_for('candidates.manage'))
+
+    candidate = Candidate(election_id=proposal.election_id, division_id=proposal.division_id,
+                          name=proposal.name, party=proposal.party, ballot_order=proposal.ballot_order)
+    db.session.add(candidate)
+    proposal.status = 'approved'
+    proposal.approved_by = user.id
+    db.session.commit()
+    log_event(user.id, 'candidate_approved', f'candidate:{candidate.id}',
+              {'proposal': proposal.id, 'proposed_by': proposal.proposed_by})
+    flash('Candidate approved and added to the ballot.', 'success')
+    return redirect(url_for('candidates.manage'))
 
 
 # ---- REST API ----

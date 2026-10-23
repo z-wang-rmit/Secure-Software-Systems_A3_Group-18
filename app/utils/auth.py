@@ -159,7 +159,7 @@ ROLE_PERMISSIONS = {
     },
     'delegate': {
         'auth.logout', 'auth.reauthenticate', 'auth.api_reauthenticate',
-        'candidates.manage', 'candidates.api_add_candidate'
+        'candidates.manage', 'candidates.approve', 'candidates.api_add_candidate'
     },
 
     'auditor': {
