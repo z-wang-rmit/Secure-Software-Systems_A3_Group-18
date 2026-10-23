@@ -69,3 +69,12 @@ def test_voter_cannot_approve():
     proposal_id = propose_as_delegate1(client)
     login(client, 'voter1')
     assert client.post(f'/delegate/candidates/proposals/{proposal_id}/approve').status_code == 403
+
+
+def test_page_lists_pending_proposals_with_approve_button():
+    client = make_client()
+    proposal_id = propose_as_delegate1(client)
+    login(client, 'delegate2')
+    page = client.get('/delegate/candidates').get_data(as_text=True)
+    assert 'Z. New' in page
+    assert f'/delegate/candidates/proposals/{proposal_id}/approve' in page

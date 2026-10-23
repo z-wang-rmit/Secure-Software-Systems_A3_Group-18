@@ -38,6 +38,7 @@ def manage():
     return render_template('candidates.html',
                            candidates=Candidate.query.order_by(Candidate.division_id,
                                                                Candidate.ballot_order).all(),
+                           proposals=CandidateProposal.query.filter_by(status='pending').all(),
                            elections=Election.query.all(), divisions=Division.query.all())
 
 
