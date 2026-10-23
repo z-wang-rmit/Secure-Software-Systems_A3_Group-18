@@ -41,13 +41,13 @@ python scripts/setup_dev.py     # makes your .env file, HTTPS certificate and ke
 Then either:
 
 - **Quick way (no Docker):** `python run.py`, then go to http://127.0.0.1:5000. This uses a local SQLite database.
-- **Full version (Docker):** `docker compose up --build` (or `podman compose up --build`), then go to https://localhost:8443. This runs MySQL and HTTPS like the real thing. Your browser will warn about the certificate because it's self-signed, which is fine for testing.
+- **Full version (Docker):** `docker compose up --build --force-recreate` (or `podman compose up --build --force-recreate`), then go to https://localhost:8443. This runs MySQL and HTTPS like the real thing. Your browser will warn about the certificate because it's self-signed, which is fine for testing.
 
 If you want to wipe the database and start fresh, run `docker compose down -v` and start it again.
 
 ### Using the API
 
-The web pages use a normal login, but the REST API (everything under `/api/v1/`) uses JWT tokens, like the Week 8 banking app. Log in with `POST /api/v1/auth/login` and a JSON body like `{"username": "voter1", "password": "..."}`. You get back an `access_token`, which you then send with every API request as the header `Authorization: Bearer <token>`. Tokens expire after 15 minutes.
+The web pages use a normal login, but the REST API (everything under `/api/v1/`) uses JWT tokens, like the Week 8 banking app. Log in with `POST /api/v1/auth/login` and a JSON body like `{"username": "voter1", "password": "...", "code": "123456"}` (`code` is the 6-digit code from your authenticator app, see R01). You get back an `access_token`, which you then send with every API request as the header `Authorization: Bearer <token>`. Tokens expire after 15 minutes.
 
 ### Test accounts
 
@@ -61,11 +61,18 @@ They all use the password in `SEED_PASSWORD` in your `.env` file.
 | delegate1, delegate2 | add candidates (VIC) |
 | auditor1 | close and count the election, read the audit log |
 
-## Running the tests
+## Running the tests and security checks
+
+CI (GitHub Actions) runs these on every pull request and on every push to `main`. A PR can only be merged once they all pass. You can run the same checks yourself before pushing:
 
 ```bash
-pytest
+ruff check --select E9,F .        # syntax errors, undefined names, unused imports
+pytest                            # unit tests, including the security tests
+bandit -r app scripts -ll         # static analysis (SAST): unsafe code patterns (R20)
+pip-audit -r requirements.txt     # dependencies with known vulnerabilities (R20)
 ```
+
+GitHub secret scanning and push protection are also turned on, so a push that contains something that looks like a real API key or token is blocked.
 
 ## Working on the repo
 
