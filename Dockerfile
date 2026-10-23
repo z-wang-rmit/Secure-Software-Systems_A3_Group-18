@@ -17,7 +17,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY run.py init_db.py ./
+COPY run.py init_db.py apply_permissions.py ./
+COPY db ./db
 COPY app ./app
 COPY templates ./templates
 COPY static ./static

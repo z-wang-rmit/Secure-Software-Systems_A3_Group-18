@@ -24,18 +24,44 @@ services:
       retries: 30
     networks: [backend]          # not published: only the app can reach the database
 
-  web:
+  init:
     build: .
-    restart: unless-stopped
-    env_file: .env
+    command: sh -c "python init_db.py && python apply_permissions.py"
+    healthcheck:
+      disable: true
     environment:
-      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db/evote
+      DATABASE_URL: mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@db/evote
+      APP_DB_USER: ${DB_USER}
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ROLL_KEY: ${ROLL_KEY}
+      SEED_PASSWORD: ${SEED_PASSWORD}
     volumes:
       - ./keys:/app/keys:ro,z
     depends_on:
       db:
         condition: service_healthy
-    networks: [backend]          # not published: only nginx can reach the app
+    restart: "no"
+    networks: [backend]
+
+  web:
+    build: .
+    command: gunicorn --bind 0.0.0.0:5000 --workers 3 run:app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: mysql+pymysql://${DB_USER}:${DB_PASSWORD}@db/evote
+      SKIP_DB_SETUP: "1"
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ROLL_KEY: ${ROLL_KEY}
+    volumes:
+      - ./keys:/app/keys:ro,z
+    depends_on:
+      db:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    networks: [backend]
 
   nginx:
     image: docker.io/library/nginx:1.28-alpine
