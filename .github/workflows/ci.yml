@@ -1,5 +1,6 @@
-# Runs the tests on every pull request and on every push to main.
-# R20 (WS-E) adds security scanners here.
+# Runs the tests and security checks on every pull request and on every push to main.
+# R20: SAST (bandit) and dependency checking (pip-audit), the build-phase tools
+# from Week 12 lecture s8. A failing check blocks the merge (ruleset on main).
 name: CI
 
 on:
@@ -24,3 +25,6 @@ jobs:
         run: ruff check --select E9,F .
       - name: Run tests
         run: pytest -q
+      - name: Static analysis (bandit, R20)
+        # -ll = only fail on medium and high severity issues
+        run: bandit -r app scripts -ll
