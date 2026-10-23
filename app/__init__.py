@@ -79,6 +79,8 @@ def create_app(test_config=None):
     # Create database tables, and demo data if SEED_PASSWORD is set
     with app.app_context():
         db.create_all()
+        from app.utils.audit import protect_audit_log
+        protect_audit_log()   # R17: audit_log is append-only
         if app.config['SEED_PASSWORD']:
             from app.utils.seed import seed_if_empty
             seed_if_empty(app.config['SEED_PASSWORD'])
