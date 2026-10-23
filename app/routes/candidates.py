@@ -1,7 +1,7 @@
 # Candidate administration by state delegates. Owner: WS-E (R19)
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 from app import db
-from app.models import Candidate, Division, Election
+from app.models import Candidate, CandidateProposal, Division, Election
 from app.utils.auth import current_user, role_required, recent_login_required, recent_api_authentication_required
 from app.utils.audit import log_event
 from app.utils.helpers import validate_required_fields
@@ -11,15 +11,16 @@ candidates_bp = Blueprint('candidates', __name__)
 CANDIDATE_FIELDS = ['election_id', 'division_id', 'name', 'ballot_order']
 
 
-def add_candidate(data):
-    """PLACEHOLDER (R19): one delegate changes candidates alone. R19 requires a second delegate's approval."""
-    candidate = Candidate(election_id=int(data['election_id']), division_id=int(data['division_id']),
-                          name=str(data['name']), party=str(data.get('party', '')),
-                          ballot_order=int(data['ballot_order']))
-    db.session.add(candidate)
+def propose_candidate(data):
+    """R19: a delegate only proposes a candidate. It goes on the ballot once a
+    different delegate approves it (separation of duties, Week 6 lecture s44)."""
+    proposal = CandidateProposal(election_id=int(data['election_id']), division_id=int(data['division_id']),
+                                 name=str(data['name']), party=str(data.get('party', '')),
+                                 ballot_order=int(data['ballot_order']), proposed_by=current_user().id)
+    db.session.add(proposal)
     db.session.commit()
-    log_event(current_user().id, 'candidate_added', f'candidate:{candidate.id}')
-    return candidate
+    log_event(current_user().id, 'candidate_proposed', f'proposal:{proposal.id}')
+    return proposal
 
 
 @candidates_bp.route('/delegate/candidates', methods=['GET', 'POST'])
@@ -31,8 +32,8 @@ def manage():
         if not is_valid:
             flash(error_message, 'danger')
         else:
-            add_candidate(request.form)
-            flash('Candidate added.', 'success')
+            propose_candidate(request.form)
+            flash('Candidate proposed. Another delegate must approve it before it goes on the ballot.', 'success')
         return redirect(url_for('candidates.manage'))
     return render_template('candidates.html',
                            candidates=Candidate.query.order_by(Candidate.division_id,
@@ -45,7 +46,7 @@ def manage():
 @candidates_bp.route('/api/v1/candidates', methods=['POST'])
 @role_required('delegate')
 def api_add_candidate():
-    """A delegate adds a candidate"""
+    """A delegate proposes a candidate (R19: another delegate must approve it)"""
     recent_api_authentication_required()
     try:
         # Validate required fields
@@ -54,8 +55,8 @@ def api_add_candidate():
         if not is_valid:
             return jsonify({'error': error_message}), 400
 
-        candidate = add_candidate(data)
-        return jsonify(candidate.to_dict()), 201
+        proposal = propose_candidate(data)
+        return jsonify({'proposal_id': proposal.id, 'status': proposal.status}), 201
 
     except Exception as e:
         db.session.rollback()
